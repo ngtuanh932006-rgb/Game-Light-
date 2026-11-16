@@ -1,1 +1,1 @@
-# Game-Light-
+# Game-Light- Novel
