@@ -1,0 +1,171 @@
+import pygame
+import os
+
+pygame.init()
+
+# --------------------------------------------------
+# SETTINGS
+# Keep these image files in the same folder as this .py:
+#   BVfVN2.png       = pixel-art city background
+#   menu_overlay.png  = extracted menu UI from 123.jpg
+# --------------------------------------------------
+WIDTH, HEIGHT = 1247, 775
+FPS = 60
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("THE CONSEQUENCE - Light Novel")
+clock = pygame.time.Clock()
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+BG_PATH = os.path.join(BASE_DIR, "BVfVN2.png")
+UI_PATH = os.path.join(BASE_DIR, "menu_overlay.png")
+
+
+
+def load_img(path):
+    try:
+        return pygame.image.load(path).convert_alpha()
+    except (pygame.error, FileNotFoundError):
+        return None
+
+
+bg_image = load_img(BG_PATH)
+ui_image = load_img(UI_PATH)
+
+
+
+def draw_cover(image, target):
+    """Scale background to fill screen, preserving aspect ratio."""
+    if image is None:
+        target.fill((18, 25, 42))
+        return
+    iw, ih = image.get_size()
+    scale = max(WIDTH / iw, HEIGHT / ih)
+    size = (int(iw * scale), int(ih * scale))
+    scaled = pygame.transform.scale(image, size)  # crisp pixel-art scaling
+    ox = (size[0] - WIDTH) // 2
+    oy = (size[1] - HEIGHT) // 2
+    target.blit(scaled, (-ox, -oy))
+
+
+
+def draw_main_menu():
+    draw_cover(bg_image, screen)
+    # dark overlay for contrast
+    shade = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+    shade.fill((7, 12, 25, 110))
+    screen.blit(shade, (0, 0))
+
+    # UI overlay made from the first screenshot (without its plain background)
+    if ui_image:
+        screen.blit(ui_image, (0, 0))
+    else:
+        # Fallback UI if menu_overlay.png is missing
+        font_title = pygame.font.SysFont("arial", 60, bold=True)
+        font_sub = pygame.font.SysFont("arial", 26)
+        font_btn = pygame.font.SysFont("arial", 30, bold=True)
+        title = font_title.render("THE CONSEQUENCE", True, (240, 243, 249))
+        screen.blit(title, title.get_rect(center=(WIDTH // 2, 180)))
+        sub = font_sub.render("A LIGHT NOVEL STORY", True, (190, 201, 218))
+        screen.blit(sub, sub.get_rect(center=(WIDTH // 2, 255)))
+        tagline = font_sub.render("Every choice has its consequence.", True, (190, 201, 218))
+        screen.blit(tagline, tagline.get_rect(center=(WIDTH // 2, 320)))
+        labels = ["NEW GAME", "CONTINUE", "SETTINGS", "QUIT GAME"]
+        for i, label in enumerate(labels):
+            rect = pygame.Rect(450, 395 + i * 90, 350, 68)
+            pygame.draw.rect(screen, (36, 48, 72), rect, border_radius=13)
+            pygame.draw.rect(screen, (125, 150, 180), rect, 2, border_radius=13)
+            txt = font_btn.render(label, True, (240, 243, 249))
+            screen.blit(txt, txt.get_rect(center=rect.center))
+
+
+
+# Button hitboxes match the buttons in the menu screenshot.
+BUTTONS = {
+    "new": pygame.Rect(450, 395, 350, 68),
+    "continue": pygame.Rect(450, 485, 350, 68),
+    "settings": pygame.Rect(450, 575, 350, 68),
+    "quit": pygame.Rect(450, 665, 350, 68),
+}
+
+
+
+def draw_settings():
+    draw_cover(bg_image, screen)
+    shade = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+    shade.fill((7, 12, 25, 175))
+    screen.blit(shade, (0, 0))
+    font_title = pygame.font.SysFont("arial", 56, bold=True)
+    font_btn = pygame.font.SysFont("arial", 30, bold=True)
+    title = font_title.render("SETTINGS", True, (240, 243, 249))
+    screen.blit(title, title.get_rect(center=(WIDTH // 2, 210)))
+    back = pygame.Rect(WIDTH // 2 - 175, 430, 350, 68)
+    pygame.draw.rect(screen, (36, 48, 72), back, border_radius=12)
+    pygame.draw.rect(screen, (125, 150, 180), back, 2, border_radius=12)
+    label = font_btn.render("BACK", True, (240, 243, 249))
+    screen.blit(label, label.get_rect(center=back.center))
+    return back
+
+
+
+def draw_story_placeholder():
+    draw_cover(bg_image, screen)
+    shade = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+    shade.fill((7, 12, 25, 170))
+    screen.blit(shade, (0, 0))
+    font_title = pygame.font.SysFont("arial", 48, bold=True)
+    font_text = pygame.font.SysFont("arial", 28)
+    title = font_title.render("REBOUND CORPORATION", True, (240, 243, 249))
+    screen.blit(title, title.get_rect(center=(WIDTH // 2, 220)))
+    msg = font_text.render("Your Visual Novel story starts here.", True, (190, 201, 218))
+    screen.blit(msg, msg.get_rect(center=(WIDTH // 2, 310)))
+    hint = font_text.render("Press ESC to return to menu", True, (240, 243, 249))
+    screen.blit(hint, hint.get_rect(center=(WIDTH // 2, 400)))
+
+
+
+# --------------------------------------------------
+# MAIN LOOP
+# --------------------------------------------------
+state = "menu"
+running = True
+
+while running:
+    clock.tick(FPS)
+
+    if state == "menu":
+        draw_main_menu()
+    elif state == "settings":
+        back_rect = draw_settings()
+    elif state == "story":
+        draw_story_placeholder()  # replace this with your actual VN scene
+
+
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+
+        elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+            if state != "menu":
+                state = "menu"
+            else:
+                running = False
+
+        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if state == "menu":
+                if BUTTONS["new"].collidepoint(event.pos):
+                    state = "story"
+                elif BUTTONS["continue"].collidepoint(event.pos):
+                    state = "story"  # connect save/load later
+                elif BUTTONS["settings"].collidepoint(event.pos):
+                    state = "settings"
+                elif BUTTONS["quit"].collidepoint(event.pos):
+                    running = False
+            elif state == "settings" and back_rect.collidepoint(event.pos):
+                state = "menu"
+
+    pygame.display.flip()
+
+
+
+pygame.quit()
